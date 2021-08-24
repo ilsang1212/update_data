@@ -55,9 +55,10 @@ async def load_coin_json(url):
                 raw_data = await response.read()
                 r = json.loads(raw_data)
                 json_dict[list(r['tokens'].values())[0]["symbol"].lower()] = r
+        return True
     except Exception as e:
         print(f"{datetime.datetime.now().strftime('%m/%d %H:%M')} : {e}")
-        pass
+        return False
               
 async def load_lp_json(url):
     try:
@@ -66,9 +67,10 @@ async def load_lp_json(url):
                 raw_data = await response.read()
                 r = json.loads(raw_data)
                 lp_json_dict[r["result"]["tokenName"][r["result"]["tokenName"].find("-")+1:].lower()] = r
+        return True
     except Exception as e:
         print(f"{datetime.datetime.now().strftime('%m/%d %H:%M')} : {e}")
-        pass
+        return False
 
 def get_ratio(klay_info, tokn_info):
     klay_decimals = 18
@@ -106,7 +108,7 @@ def save_prices_history(klay_info, tokn_info):
     
     return prices
 
-def main():
+async def main():
     global json_dict
     global lp_json_dict
     global prices_dict
@@ -115,7 +117,7 @@ def main():
 
     index : int = 0
     cnt : int = 0
-
+    
     try:
         price_db = MongoClient(ssl=True, ssl_cert_reqs=ssl.CERT_NONE, **mongoDB_connect_info)
         price_db.admin.command("ismaster") # 연결 완료되었는지 체크
@@ -154,7 +156,6 @@ def main():
             index += 1
             cnt =0
 
-        loop = asyncio.get_event_loop()
         tasks = []
         
         for url in url_list:
@@ -164,15 +165,16 @@ def main():
         for url in lp_url_list:
             task = asyncio.ensure_future(load_lp_json(url))
             tasks.append(task)
-        
-        
-        loop.run_until_complete(asyncio.gather(*tasks))
-            
-        loop.close()
+                
+        result = await asyncio.gather(*tasks)
+
+        if not all(result):
+            await asyncio.sleep(loop_time)
+            continue
 
         prices = save_prices_history(lp_json_dict, json_dict)
         if prices == {}:
-            time.sleep(loop_time)
+            await asyncio.sleep(loop_time)
             continue
 
         for k in prices_dict.keys():
@@ -195,11 +197,14 @@ def main():
         lp_json_dict = {}
         # except:
         #     pass
-        time.sleep(loop_time)
+        await asyncio.sleep(loop_time)
 
 if __name__ == "__main__":
     py_ver = int(f"{sys.version_info.major}{sys.version_info.minor}")
     if py_ver > 37 and sys.platform.startswith('win'):
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    main()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
+    loop.close()
+    
     
