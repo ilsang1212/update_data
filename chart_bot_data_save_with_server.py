@@ -49,18 +49,26 @@ for k in prices_dict.keys():
         lp_url_list.append(f'https://api-cypress.scope.klaytn.com/v1/accounts/{kwlps[k]}')
 
 async def load_coin_json(url):
-    async with ClientSession() as session:
-        async with session.get(url) as response:
-            raw_data = await response.read()
-            r = json.loads(raw_data)
-            json_dict[list(r['tokens'].values())[0]["symbol"].lower()] = r
-
+    try:
+        async with ClientSession() as session:
+            async with session.get(url) as response:
+                raw_data = await response.read()
+                r = json.loads(raw_data)
+                json_dict[list(r['tokens'].values())[0]["symbol"].lower()] = r
+    except Exception as e:
+        print(f"{datetime.datetime.now().strftime('%m/%d %H:%M')} : {e}")
+        pass
+              
 async def load_lp_json(url):
-    async with ClientSession() as session:
-        async with session.get(url) as response:
-            raw_data = await response.read()
-            r = json.loads(raw_data)
-            lp_json_dict[r["result"]["tokenName"][r["result"]["tokenName"].find("-")+1:].lower()] = r
+    try:
+        async with ClientSession() as session:
+            async with session.get(url) as response:
+                raw_data = await response.read()
+                r = json.loads(raw_data)
+                lp_json_dict[r["result"]["tokenName"][r["result"]["tokenName"].find("-")+1:].lower()] = r
+    except Exception as e:
+        print(f"{datetime.datetime.now().strftime('%m/%d %H:%M')} : {e}")
+        pass
 
 def get_ratio(klay_info, tokn_info):
     klay_decimals = 18
@@ -158,6 +166,8 @@ def main():
                 tasks.append(task)
 
             loop.run_until_complete(asyncio.wait(tasks))
+              
+            loop.close()
 
             prices = save_prices_history(lp_json_dict, json_dict)
             if prices == {}:
