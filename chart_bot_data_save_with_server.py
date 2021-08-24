@@ -122,8 +122,6 @@ def main():
     try:
         db_index = price_db.coin.price.find().sort([("_id",-1)]).limit(1)
         index = list(db_index)[0]["_id"]
-        db_index = price_db.coin.price.find().sort([("_id",1)]).limit(1)
-        first_index = list(db_index)[0]["_id"]
     except:
         pass
 
@@ -139,6 +137,8 @@ def main():
                     prices_dict[k] = [v[len(v)-1]]
 
                 if price_db.coin.price.count_documents({}) >= max_length * 1.05:
+                    delete_db_index = price_db.coin.price.find().sort([("_id",1)]).limit(1)
+                    first_index = list(delete_db_index)[0]["_id"]
                     price_db.coin.price.find_one_and_delete({"_id":first_index})
 
                 price_db.coin.price.update_one({"_id":index}, {"$set" : prices_candle_dict}, upsert=True)
