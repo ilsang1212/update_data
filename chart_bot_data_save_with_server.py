@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*- 
 
-import os
+import sys, os
 import datetime, time
 import asyncio
 from aiohttp import ClientSession
@@ -134,69 +134,72 @@ def main():
         pass
 
     while True:
-        try:
-            if cnt == cal_loop:
-                prices_candle_dict["Time"] = prices["Time"]
-                for k, v in prices_dict.items():
-                    prices_candle_dict[k].pop(0)
-                    prices_candle_dict[k].append([v[0], max(v), min(v), v[len(v)-1]])
-                
-                for k, v in prices_dict.items():
-                    prices_dict[k] = [v[len(v)-1]]
-
-                if price_db.coin.price.count_documents({}) >= max_length * 1.05:
-                    delete_db_index = price_db.coin.price.find().sort([("_id",1)]).limit(1)
-                    first_index = list(delete_db_index)[0]["_id"]
-                    price_db.coin.price.find_one_and_delete({"_id":first_index})
-
-                price_db.coin.price.update_one({"_id":index}, {"$set" : prices_candle_dict}, upsert=True)
-
-                index += 1
-                cnt =0
-
-            loop = asyncio.get_event_loop()
-            tasks = []
+        # try:
+        if cnt == cal_loop:
+            prices_candle_dict["Time"] = prices["Time"]
+            for k, v in prices_dict.items():
+                prices_candle_dict[k].pop(0)
+                prices_candle_dict[k].append([v[0], max(v), min(v), v[len(v)-1]])
             
-            for url in url_list:
-                task = asyncio.ensure_future(load_coin_json(url))
-                tasks.append(task)
-            
-            for url in lp_url_list:
-                task = asyncio.ensure_future(load_lp_json(url))
-                tasks.append(task)
+            for k, v in prices_dict.items():
+                prices_dict[k] = [v[len(v)-1]]
 
-            loop.run_until_complete(asyncio.wait(tasks))
-              
-            loop.close()
-
-            prices = save_prices_history(lp_json_dict, json_dict)
-            if prices == {}:
-                time.sleep(loop_time)
-                continue
-
-            for k in prices_dict.keys():
-                prices_dict[k].append(prices[k])
-            
-            if not prices_candle_dict["Time"]:
-                prices_candle_dict["Time"] = prices["Time"]
-                for k, v in prices_dict.items():
-                    prices_candle_dict[k].append([v[0], max(v), min(v), v[len(v)-1]])
-            else:
-                prices_candle_dict["Time"] = prices["Time"]
-                for k, v in prices_dict.items():
-                    prices_candle_dict[k][len(prices_candle_dict[k])-1] = [v[0], max(v), min(v), v[len(v)-1]]
+            if price_db.coin.price.count_documents({}) >= max_length * 1.05:
+                delete_db_index = price_db.coin.price.find().sort([("_id",1)]).limit(1)
+                first_index = list(delete_db_index)[0]["_id"]
+                price_db.coin.price.find_one_and_delete({"_id":first_index})
 
             price_db.coin.price.update_one({"_id":index}, {"$set" : prices_candle_dict}, upsert=True)
 
-            cnt += 1
+            index += 1
+            cnt =0
 
-            json_dict = {}
-            lp_json_dict = {}
+        loop = asyncio.get_event_loop()
+        tasks = []
+        
+        for url in url_list:
+            task = asyncio.ensure_future(load_coin_json(url))
+            tasks.append(task)
+        
+        for url in lp_url_list:
+            task = asyncio.ensure_future(load_lp_json(url))
+            tasks.append(task)
+        
+        
+        loop.run_until_complete(asyncio.gather(*tasks))
             
-        except:
-            pass
+        loop.close()
+
+        prices = save_prices_history(lp_json_dict, json_dict)
+        if prices == {}:
+            time.sleep(loop_time)
+            continue
+
+        for k in prices_dict.keys():
+            prices_dict[k].append(prices[k])
+        
+        if not prices_candle_dict["Time"]:
+            prices_candle_dict["Time"] = prices["Time"]
+            for k, v in prices_dict.items():
+                prices_candle_dict[k].append([v[0], max(v), min(v), v[len(v)-1]])
+        else:
+            prices_candle_dict["Time"] = prices["Time"]
+            for k, v in prices_dict.items():
+                prices_candle_dict[k][len(prices_candle_dict[k])-1] = [v[0], max(v), min(v), v[len(v)-1]]
+
+        price_db.coin.price.update_one({"_id":index}, {"$set" : prices_candle_dict}, upsert=True)
+
+        cnt += 1
+
+        json_dict = {}
+        lp_json_dict = {}
+        # except:
+        #     pass
         time.sleep(loop_time)
 
 if __name__ == "__main__":
+    py_ver = int(f"{sys.version_info.major}{sys.version_info.minor}")
+    if py_ver > 37 and sys.platform.startswith('win'):
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     main()
     
