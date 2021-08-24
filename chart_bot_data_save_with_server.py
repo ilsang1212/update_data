@@ -50,13 +50,15 @@ for k in prices_dict.keys():
 async def load_coin_json(url):
     async with ClientSession() as session:
         async with session.get(url) as response:
-            r = await response.json(content_type=None)
+            raw_data = await response.read()
+            r = json.loads(raw_data)
             json_dict[list(r['tokens'].values())[0]["symbol"].lower()] = r
 
 async def load_lp_json(url):
     async with ClientSession() as session:
         async with session.get(url) as response:
-            r = await response.json(content_type=None)
+            raw_data = await response.read()
+            r = json.loads(raw_data)
             lp_json_dict[r["result"]["tokenName"][r["result"]["tokenName"].find("-")+1:].lower()] = r
 
 def get_ratio(klay_info, tokn_info):
