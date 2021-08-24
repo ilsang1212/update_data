@@ -2,3 +2,4 @@ pyssml
 oauth2client
 PyOpenSSL
 pymongo
+aiohttp
