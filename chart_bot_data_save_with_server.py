@@ -103,6 +103,7 @@ def main():
     global lp_json_dict
     global prices_dict
     global prices_candle_dict
+    global price_db
 
     index : int = 0
     cnt : int = 0
