@@ -221,12 +221,24 @@ async def main():
         result = await asyncio.gather(*tasks)
 
         if not all(result):
-            await asyncio.sleep(loop_time)
+            loop_end = (datetime.datetime.now() - start).total_seconds()
+
+            delay_time = loop_time - loop_end
+            if delay_time < 0:
+                delay_time = 1
+
+            await asyncio.sleep(delay_time)
             continue
 
         prices = save_prices_history(lp_json_dict, json_dict)
         if prices == {}:
-            await asyncio.sleep(loop_time)
+            loop_end = (datetime.datetime.now() - start).total_seconds()
+
+            delay_time = loop_time - loop_end
+            if delay_time < 0:
+                delay_time = 1
+
+            await asyncio.sleep(delay_time)
             continue
 
         for k in prices_dict.keys():
