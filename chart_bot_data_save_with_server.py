@@ -221,6 +221,10 @@ async def main():
         result = await asyncio.gather(*tasks)
 
         if not all(result):
+            cnt += 1
+
+            json_dict = {}
+            lp_json_dict = {}
             loop_end = (datetime.datetime.now() - start).total_seconds()
 
             delay_time = loop_time - loop_end
@@ -232,6 +236,10 @@ async def main():
 
         prices = save_prices_history(lp_json_dict, json_dict)
         if prices == {}:
+            cnt += 1
+
+            json_dict = {}
+            lp_json_dict = {}
             loop_end = (datetime.datetime.now() - start).total_seconds()
 
             delay_time = loop_time - loop_end
@@ -310,5 +318,3 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
     loop.close()
-    
-    
