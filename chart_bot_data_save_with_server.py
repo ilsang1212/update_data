@@ -70,7 +70,14 @@ async def load_coin_json(url):
             async with session.get(url) as response:
                 raw_data = await response.read()
                 r = json.loads(raw_data)
-                json_dict[list(r['tokens'].values())[0]["symbol"].lower()] = r
+                if klay_usdt_lp == url[url.find("accounts/")+len("accounts/"):url.find("/balances")]:
+                    json_dict[list(r['tokens'].values())[0]["symbol"].lower()] = r
+
+                for k, v in kwlps.items():
+                    if url[url.find("accounts/")+len("accounts/"):url.find("/balances")] == v:
+                        # json_dict[list(r['tokens'].values())[0]["symbol"].lower()] = r
+                        json_dict[k] = r
+                        break
         return True
     except Exception as e:
         print(f"{datetime.datetime.now().strftime('%m/%d %H:%M')} : {e}")
@@ -100,28 +107,36 @@ def get_ratio(klay_info, tokn_info):
         tokn2_decimals = list(tokn_info['tokens'].values())[1]['decimals']
         tokn2_amount = tokn_info['result'][1]['amount']
         tokn2_balance = float(tokn2_amount)/(10**tokn2_decimals)
-        return tokn1_balance / tokn2_balance
+        return False, str(list(tokn_info['tokens'].values())[0]['symbol'].lower()), tokn1_balance / tokn2_balance
     else:
         tokn_decimals = list(tokn_info['tokens'].values())[0]['decimals']
         tokn_amount = tokn_info['result'][0]['amount']
         tokn_balance = float(tokn_amount)/(10**tokn_decimals)
-        return klay_balance / tokn_balance
+        return True, "klay", klay_balance / tokn_balance
 
 def save_prices_history(klay_info, tokn_info):
     prices = dict()
+    checker : bool = True
+    base_symbol : str = ""
     prices['Time'] = (datetime.datetime.now() + datetime.timedelta(hours = int(9))).strftime('%m/%d %H:%M')
-    ratio = get_ratio(klay_info["kusdt"], tokn_info["kusdt"])
+    checker, base_symbol, ratio = get_ratio(klay_info["kusdt"], tokn_info["kusdt"])
     if ratio == 0:
         return {}
-    prices['klay'] = round(1/ratio, 8)
+    prices[base_symbol] = round(1/ratio, 8)
+    
+    tmp_dict : dict = {}
+    for token_name in token_name_list:
+        tmp_dict[token_name] = tokn_info[token_name]
 
-    for key, value in tokn_info.items():
+    for key, value in tmp_dict.items():
         if key != "kusdt":
-            lp_ratio = get_ratio(klay_info[key], value)
+            checker, base_symbol, lp_ratio = get_ratio(klay_info[key], value)
             if lp_ratio == 0:
                 return {}
-            prices[key] = round(lp_ratio * prices['klay'], 8)
-    
+            if checker:
+                prices[key] = round(lp_ratio * prices[base_symbol], 8)
+            else:
+                prices[key] = round(lp_ratio * prices[base_symbol], 8)
     return prices
 
 def db_update_prices(db, index : int, input_prices : dict, input_prices_dict : dict, input_prices_candle_dict : dict):
