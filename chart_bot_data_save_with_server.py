@@ -301,12 +301,14 @@ async def main():
             prices_candle_dict_fifteen["Time"] = prices["Time"]
             prices_candle_dict_hour["Time"] = prices["Time"]
             prices_candle_dict_four_hour["Time"] = prices["Time"]
+            prices_candle_dict_day["Time"] = prices["Time"]
 
             for k, v in prices_dict.items():
                 prices_candle_dict[k].append([v[0], max(v), min(v), v[len(v)-1]])
                 prices_dict_fifteen[k] = prices_candle_dict[k][0]
                 prices_dict_hour[k] = prices_candle_dict[k][0]
                 prices_dict_four_hour[k] = prices_candle_dict[k][0]
+                prices_dict_day[k] = prices_candle_dict[k][0]
         else:
             prices_candle_dict["Time"] = prices["Time"]
             for k, v in prices_dict.items():
@@ -316,10 +318,12 @@ async def main():
             prices_candle_dict_fifteen["Time"] = prices["Time"]
             prices_candle_dict_hour["Time"] = prices["Time"]
             prices_candle_dict_four_hour["Time"] = prices["Time"]
+            prices_candle_dict_day["Time"] = prices["Time"]
             for k in prices_dict.keys():    
                 prices_dict_fifteen[k] = prices_candle_dict[k][0]
                 prices_dict_hour[k] = prices_candle_dict[k][0]
                 prices_dict_four_hour[k] = prices_candle_dict[k][0]
+                prices_dict_day[k] = prices_candle_dict[k][0]
 
         for k in prices_dict.keys():
             tmp_fifteen = prices_dict_fifteen[k] + prices_candle_dict[k][0]
