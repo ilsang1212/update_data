@@ -38,6 +38,9 @@ prices_candle_dict_hour : dict = {"Time": "", "klay":[]}
 #4시간
 prices_dict_four_hour : dict = {"klay":[]}
 prices_candle_dict_four_hour : dict = {"Time": "", "klay":[]}
+#1일
+prices_dict_day : dict = {"klay":[]}
+prices_candle_dict_day : dict = {"Time": "", "klay":[]}
 
 price_db = None
 
@@ -55,6 +58,8 @@ for k in kwlps.keys():
     prices_candle_dict_hour[k] = []
     prices_dict_four_hour[k] = []
     prices_candle_dict_four_hour[k] = []
+    prices_dict_day[k] = []
+    prices_candle_dict_day[k] = []
 
 for k in prices_dict.keys():
     if k == "klay":
@@ -165,12 +170,15 @@ async def main():
     global prices_candle_dict_hour
     global prices_dict_four_hour
     global prices_candle_dict_four_hour
+    global prices_dict_day
+    global prices_candle_dict_day
     global price_db
 
     index : int = 0
     fifteen_index : int = 0
     hour_index : int = 0
     four_hour_index : int = 0
+    day_index : int = 0
     cnt : int = 0
     
     try:
@@ -188,17 +196,33 @@ async def main():
         db_index = price_db.coin.price.find({}).distinct('_id')
         if len(db_index) != 0:
             index = max(db_index) + 1
+    except:
+        pass
+    try:
         db_fifteen_index = price_db.coin.price_fifteen.find({}).distinct('_id')
         if len(db_fifteen_index) != 0:
             fifteen_index = max(db_fifteen_index) + 1
+    except:
+        pass
+    try:
         db_hour_index = price_db.coin.price_hour.find({}).distinct('_id')
         if len(db_hour_index) != 0:
             hour_index = max(db_hour_index) + 1
+    except:
+        pass
+    try:
         db_four_hour_index = price_db.coin.price_four_hour.find({}).distinct('_id')
         if len(db_four_hour_index) != 0:
             four_hour_index = max(db_four_hour_index) + 1
     except:
         pass
+    try:
+        db_day_index = price_db.coin.price_day.find({}).distinct('_id')
+        if len(db_day_index) != 0:
+            day_index = max(db_day_index) + 1
+    except:
+        pass
+
 
     while True:
         start = datetime.datetime.now()
@@ -222,6 +246,11 @@ async def main():
                         prices_dict_four_hour, prices_candle_dict_four_hour = db_update_prices(price_db.coin.price_four_hour, four_hour_index, prices, prices_dict_four_hour, prices_candle_dict_four_hour)
 
                         four_hour_index += 1
+
+                        if four_hour_index != 0 and four_hour_index % 6 == 0:
+                            prices_dict_day, prices_candle_dict_day = db_update_prices(price_db.coin.price_day, day_index, prices, prices_dict_day, prices_candle_dict_day)
+
+                            day_index += 1
 
         tasks = []
         
@@ -308,10 +337,16 @@ async def main():
             prices_candle_dict_four_hour[k] = [result_four_hour]
             prices_dict_four_hour[k] = result_four_hour
 
+            tmp_day = prices_dict_day[k] + prices_candle_dict[k][0]
+            result_day = [tmp_day[0], max(tmp_day), min(tmp_day), tmp_day[len(tmp_day)-1]]
+            prices_candle_dict_day[k] = [result_day]
+            prices_dict_day[k] = result_day
+
         price_db.coin.price.update_one({"_id":index}, {"$set" : prices_candle_dict}, upsert=True)
         price_db.coin.price_fifteen.update_one({"_id":fifteen_index}, {"$set" : prices_candle_dict_fifteen}, upsert=True)
         price_db.coin.price_hour.update_one({"_id":hour_index}, {"$set" : prices_candle_dict_hour}, upsert=True)
         price_db.coin.price_four_hour.update_one({"_id":four_hour_index}, {"$set" : prices_candle_dict_four_hour}, upsert=True)
+        price_db.coin.price_day.update_one({"_id":day_index}, {"$set" : prices_candle_dict_day}, upsert=True)
         
         cnt += 1
 
