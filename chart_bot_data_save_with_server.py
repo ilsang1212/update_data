@@ -13,6 +13,7 @@ token_hash_list : list = os.environ["TOKEN_HASH"].split(" ")
 max_length : int = int(os.environ["MAX_LENGTH"])
 loop_time : float = float(os.environ["LOOP_TIME"])
 klay_usdt_lp = os.environ["KLAY_USDT_LP"]  # 이건 유지
+ks_check_list : list = os.environ["KS_CHECK_LIST"].split(" ")  # 이건 유지
 cal_loop : int = int(300/loop_time)
 
 mongoDB_connect_info : dict = {
@@ -113,7 +114,7 @@ def get_ratio(klay_info, tokn_info):
         tokn2_amount = tokn_info['result'][1]['amount']
         tokn2_balance = float(tokn2_amount)/(10**tokn2_decimals)
 
-        if str(list(tokn_info['tokens'].values())[0]['symbol'].lower()) == "kscoinbase" or str(list(tokn_info['tokens'].values())[0]['symbol'].lower()) == "ksdunamu" or str(list(tokn_info['tokens'].values())[0]['symbol'].lower()) == "ksyanolja":
+        if str(list(tokn_info['tokens'].values())[0]['symbol'].lower()) in ks_check_list:
             return False, str(list(tokn_info['tokens'].values())[1]['symbol'].lower()), tokn2_balance / tokn1_balance
         else:
             return False, str(list(tokn_info['tokens'].values())[0]['symbol'].lower()), tokn1_balance / tokn2_balance
