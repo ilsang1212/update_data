@@ -112,7 +112,11 @@ def get_ratio(klay_info, tokn_info):
         tokn2_decimals = list(tokn_info['tokens'].values())[1]['decimals']
         tokn2_amount = tokn_info['result'][1]['amount']
         tokn2_balance = float(tokn2_amount)/(10**tokn2_decimals)
-        return False, str(list(tokn_info['tokens'].values())[0]['symbol'].lower()), tokn1_balance / tokn2_balance
+
+        if str(list(tokn_info['tokens'].values())[0]['symbol'].lower()) == "kscoinbase" or str(list(tokn_info['tokens'].values())[0]['symbol'].lower()) == "ksdunamu" or str(list(tokn_info['tokens'].values())[0]['symbol'].lower()) == "ksyanolja":
+            return False, str(list(tokn_info['tokens'].values())[1]['symbol'].lower()), tokn2_balance / tokn1_balance
+        else:
+            return False, str(list(tokn_info['tokens'].values())[0]['symbol'].lower()), tokn1_balance / tokn2_balance
     else:
         tokn_decimals = list(tokn_info['tokens'].values())[0]['decimals']
         tokn_amount = tokn_info['result'][0]['amount']
