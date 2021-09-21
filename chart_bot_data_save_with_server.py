@@ -95,7 +95,13 @@ async def load_lp_json(url):
             async with session.get(url) as response:
                 raw_data = await response.read()
                 r = json.loads(raw_data)
-                lp_json_dict[r["result"]["tokenName"][r["result"]["tokenName"].find("-")+1:].lower()] = r
+                if r["result"]["address"] != klay_usdt_lp.lower():
+                    if r["result"]["tokenName"][r["result"]["tokenName"].find("-")+1:].lower() == "kusdt":
+                        lp_json_dict[r["result"]["tokenName"][r["result"]["tokenName"].find("KlaySwap LP ")+12:r["result"]["tokenName"].find("-")].lower()] = r
+                    else:    
+                        lp_json_dict[r["result"]["tokenName"][r["result"]["tokenName"].find("-")+1:].lower()] = r
+                else:
+                    lp_json_dict[r["result"]["tokenName"][r["result"]["tokenName"].find("-")+1:].lower()] = r
         return True
     except Exception as e:
         print(f"{datetime.datetime.now().strftime('%m/%d %H:%M')} : {e}")
@@ -115,18 +121,20 @@ def get_ratio(klay_info, tokn_info):
         tokn2_balance = float(tokn2_amount)/(10**tokn2_decimals)
 
         if str(list(tokn_info['tokens'].values())[0]['symbol'].lower()) in ks_check_list:
-            return False, str(list(tokn_info['tokens'].values())[1]['symbol'].lower()), tokn2_balance / tokn1_balance
+            return 0, str(list(tokn_info['tokens'].values())[1]['symbol'].lower()), tokn2_balance / tokn1_balance
+        elif str(list(tokn_info['tokens'].values())[0]['symbol'].lower()) == "kusdt":
+            return 2, str(list(tokn_info['tokens'].values())[1]['symbol'].lower()), tokn1_balance / tokn2_balance
         else:
-            return False, str(list(tokn_info['tokens'].values())[0]['symbol'].lower()), tokn1_balance / tokn2_balance
+            return 0, str(list(tokn_info['tokens'].values())[0]['symbol'].lower()), tokn1_balance / tokn2_balance
     else:
         tokn_decimals = list(tokn_info['tokens'].values())[0]['decimals']
         tokn_amount = tokn_info['result'][0]['amount']
         tokn_balance = float(tokn_amount)/(10**tokn_decimals)
-        return True, "klay", klay_balance / tokn_balance
+        return 1, "klay", klay_balance / tokn_balance
 
 def save_prices_history(klay_info, tokn_info):
     prices = dict()
-    checker : bool = True
+    checker : int = 1
     base_symbol : str = ""
     prices['Time'] = (datetime.datetime.now() + datetime.timedelta(hours = int(9))).strftime('%m/%d %H:%M')
     checker, base_symbol, ratio = get_ratio(klay_info["kusdt"], tokn_info["kusdt"])
@@ -143,10 +151,12 @@ def save_prices_history(klay_info, tokn_info):
             checker, base_symbol, lp_ratio = get_ratio(klay_info[key], value)
             if lp_ratio == 0:
                 return {}
-            if checker:
+            if checker == 1:
+                prices[key] = round(lp_ratio * prices[base_symbol], 8)
+            elif checker == 0:
                 prices[key] = round(lp_ratio * prices[base_symbol], 8)
             else:
-                prices[key] = round(lp_ratio * prices[base_symbol], 8)
+                prices[key] = round(lp_ratio, 8)
     return prices
 
 def db_update_prices(db, index : int, input_prices : dict, input_prices_dict : dict, input_prices_candle_dict : dict):
