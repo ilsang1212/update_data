@@ -124,6 +124,8 @@ def get_ratio(klay_info, tokn_info):
             return 0, str(list(tokn_info['tokens'].values())[1]['symbol'].lower()), tokn2_balance / tokn1_balance
         elif str(list(tokn_info['tokens'].values())[0]['symbol'].lower()) == "kusdt":
             return 2, str(list(tokn_info['tokens'].values())[1]['symbol'].lower()), tokn1_balance / tokn2_balance
+        elif str(list(tokn_info['tokens'].values())[1]['symbol'].lower()) == "kusdt":
+            return 2, str(list(tokn_info['tokens'].values())[0]['symbol'].lower()), tokn2_balance / tokn1_balance
         else:
             return 0, str(list(tokn_info['tokens'].values())[0]['symbol'].lower()), tokn1_balance / tokn2_balance
     else:
