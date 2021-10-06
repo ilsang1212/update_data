@@ -164,12 +164,12 @@ def main():
         start = datetime.datetime.now()
         # try:
         if cnt == cal_loop:
-            prices_dict_one, prices_candle_dict_one = db_update_prices(price_db.coin.price_one, index, prices, prices_dict_one, prices_candle_dict_one)
+            prices_dict_one, prices_candle_dict_one = db_update_prices(price_db.coin.price_one, one_index, prices, prices_dict_one, prices_candle_dict_one)
             one_index += 1
             cnt = 0
 
             if one_index != 0 and one_index % 5 == 0:
-                prices_dict_five, prices_candle_dict_five = db_update_prices(price_db.coin.price_five, index, prices, prices_dict_five, prices_candle_dict_five)
+                prices_dict_five, prices_candle_dict_five = db_update_prices(price_db.coin.price_five, five_index, prices, prices_dict_five, prices_candle_dict_five)
                 five_index += 1
 
                 if five_index != 0 and five_index % 3 == 0:
