@@ -6,15 +6,14 @@ import asyncio
 from aiohttp import ClientSession
 from pymongo import MongoClient
 import pymongo, ssl
+import requests
 import json
 
 token_name_list : list = os.environ["TOKEN_NAME"].split(" ")
-token_hash_list : list = os.environ["TOKEN_HASH"].split(" ")
 max_length : int = int(os.environ["MAX_LENGTH"])
 loop_time : float = float(os.environ["LOOP_TIME"])
-klay_usdt_lp = os.environ["KLAY_USDT_LP"]  # 이건 유지
-ks_check_list : list = os.environ["KS_CHECK_LIST"].split(" ")  # 이건 유지
-cal_loop : int = int(300/loop_time)
+data_url : str = os.environ["DATA_URL"] 
+cal_loop : int = int(60/loop_time)
 
 mongoDB_connect_info : dict = {
     "host" : os.environ["mongoDB_HOST"],
@@ -22,37 +21,34 @@ mongoDB_connect_info : dict = {
     "password" : os.environ["USER_PASSWORD"]
     }
 
-url_list : list = []
-lp_url_list : list = []
-kwlps : dict = {}
-json_dict : dict = {"kusdt":None}
-lp_json_dict : dict = {"kusdt":None}
+#1분
+prices_dict_one : dict = {}
+prices_candle_dict_one : dict = {"Time": ""}
 #5분
-prices_dict : dict = {"klay":[]}
-prices_candle_dict : dict = {"Time": "", "klay":[]}
+prices_dict_five : dict = {}
+prices_candle_dict_five : dict = {"Time": ""}
 #15분
-prices_dict_fifteen : dict = {"klay":[]}
-prices_candle_dict_fifteen : dict = {"Time": "", "klay":[]}
+prices_dict_fifteen : dict = {}
+prices_candle_dict_fifteen : dict = {"Time": ""}
 #1시간
-prices_dict_hour : dict = {"klay":[]}
-prices_candle_dict_hour : dict = {"Time": "", "klay":[]}
+prices_dict_hour : dict = {}
+prices_candle_dict_hour : dict = {"Time": ""}
 #4시간
-prices_dict_four_hour : dict = {"klay":[]}
-prices_candle_dict_four_hour : dict = {"Time": "", "klay":[]}
+prices_dict_four_hour : dict = {}
+prices_candle_dict_four_hour : dict = {"Time": ""}
 #1일
-prices_dict_day : dict = {"klay":[]}
-prices_candle_dict_day : dict = {"Time": "", "klay":[]}
+prices_dict_day : dict = {}
+prices_candle_dict_day : dict = {"Time": ""}
 
 price_db = None
-
-for i, name in enumerate(token_name_list):
-    kwlps[name] = token_hash_list[i]
-
-for k in kwlps.keys():
-    json_dict[k] = None
-    lp_json_dict[k] = None
-    prices_dict[k] = []
-    prices_candle_dict[k] = []
+coin_json_data : dict = {}
+lp_json_data : dict = {}
+    
+for k in token_name_list:
+    prices_dict_one[k] = []
+    prices_candle_dict_one[k] = []
+    prices_dict_five[k] = []
+    prices_candle_dict_five[k] = []
     prices_dict_fifteen[k] = []
     prices_candle_dict_fifteen[k] = []
     prices_dict_hour[k] = []
@@ -62,103 +58,20 @@ for k in kwlps.keys():
     prices_dict_day[k] = []
     prices_candle_dict_day[k] = []
 
-for k in prices_dict.keys():
-    if k == "klay":
-        url_list.append(f'https://api-cypress.scope.klaytn.com/v1/accounts/{klay_usdt_lp}/balances')
-        lp_url_list.append(f'https://api-cypress.scope.klaytn.com/v1/accounts/{klay_usdt_lp}')
-    else:
-        url_list.append(f'https://api-cypress.scope.klaytn.com/v1/accounts/{kwlps[k]}/balances')
-        lp_url_list.append(f'https://api-cypress.scope.klaytn.com/v1/accounts/{kwlps[k]}')
-
-async def load_coin_json(url):
+def get_json():
     try:
-        async with ClientSession() as session:
-            async with session.get(url) as response:
-                raw_data = await response.read()
-                r = json.loads(raw_data)
-                if klay_usdt_lp == url[url.find("accounts/")+len("accounts/"):url.find("/balances")]:
-                    json_dict[list(r['tokens'].values())[0]["symbol"].lower()] = r
-
-                for k, v in kwlps.items():
-                    if url[url.find("accounts/")+len("accounts/"):url.find("/balances")] == v:
-                        # json_dict[list(r['tokens'].values())[0]["symbol"].lower()] = r
-                        json_dict[k] = r
-                        break
-        return True
+        klayswap_info = requests.get(data_url).json()
+        return True, klayswap_info
     except Exception as e:
         print(f"{datetime.datetime.now().strftime('%m/%d %H:%M')} : {e}")
-        return False
-              
-async def load_lp_json(url):
-    try:
-        async with ClientSession() as session:
-            async with session.get(url) as response:
-                raw_data = await response.read()
-                r = json.loads(raw_data)
-                if r["result"]["address"] != klay_usdt_lp.lower():
-                    if r["result"]["tokenName"][r["result"]["tokenName"].find("-")+1:].lower() == "kusdt":
-                        lp_json_dict[r["result"]["tokenName"][r["result"]["tokenName"].find("KlaySwap LP ")+12:r["result"]["tokenName"].find("-")].lower()] = r
-                    else:    
-                        lp_json_dict[r["result"]["tokenName"][r["result"]["tokenName"].find("-")+1:].lower()] = r
-                else:
-                    lp_json_dict[r["result"]["tokenName"][r["result"]["tokenName"].find("-")+1:].lower()] = r
-        return True
-    except Exception as e:
-        print(f"{datetime.datetime.now().strftime('%m/%d %H:%M')} : {e}")
-        return False
+        return False, "" 
 
-def get_ratio(klay_info, tokn_info):
-    klay_decimals = 18
-    klay_balance = float(klay_info['result']['balance'])/(10**klay_decimals)
-    
-    if len(list(tokn_info['tokens'].values())) > 1 and klay_balance == 0:
-        tokn1_decimals = list(tokn_info['tokens'].values())[0]['decimals']
-        tokn1_amount = tokn_info['result'][0]['amount']
-        tokn1_balance = float(tokn1_amount)/(10**tokn1_decimals)
-        
-        tokn2_decimals = list(tokn_info['tokens'].values())[1]['decimals']
-        tokn2_amount = tokn_info['result'][1]['amount']
-        tokn2_balance = float(tokn2_amount)/(10**tokn2_decimals)
-
-        if str(list(tokn_info['tokens'].values())[0]['symbol'].lower()) in ks_check_list:
-            return 0, str(list(tokn_info['tokens'].values())[1]['symbol'].lower()), tokn2_balance / tokn1_balance
-        elif str(list(tokn_info['tokens'].values())[0]['symbol'].lower()) == "kusdt":
-            return 2, str(list(tokn_info['tokens'].values())[1]['symbol'].lower()), tokn1_balance / tokn2_balance
-        elif str(list(tokn_info['tokens'].values())[1]['symbol'].lower()) == "kusdt":
-            return 2, str(list(tokn_info['tokens'].values())[0]['symbol'].lower()), tokn2_balance / tokn1_balance
-        else:
-            return 0, str(list(tokn_info['tokens'].values())[0]['symbol'].lower()), tokn1_balance / tokn2_balance
-    else:
-        tokn_decimals = list(tokn_info['tokens'].values())[0]['decimals']
-        tokn_amount = tokn_info['result'][0]['amount']
-        tokn_balance = float(tokn_amount)/(10**tokn_decimals)
-        return 1, "klay", klay_balance / tokn_balance
-
-def save_prices_history(klay_info, tokn_info):
+def save_prices_history(token_info):
     prices = dict()
-    checker : int = 1
-    base_symbol : str = ""
     prices['Time'] = (datetime.datetime.now() + datetime.timedelta(hours = int(9))).strftime('%m/%d %H:%M')
-    checker, base_symbol, ratio = get_ratio(klay_info["kusdt"], tokn_info["kusdt"])
-    if ratio == 0:
-        return {}
-    prices[base_symbol] = round(1/ratio, 8)
-    
-    tmp_dict : dict = {}
-    for token_name in token_name_list:
-        tmp_dict[token_name] = tokn_info[token_name]
-
-    for key, value in tmp_dict.items():
-        if key != "kusdt":
-            checker, base_symbol, lp_ratio = get_ratio(klay_info[key], value)
-            if lp_ratio == 0:
-                return {}
-            if checker == 1:
-                prices[key] = round(lp_ratio * prices[base_symbol], 8)
-            elif checker == 0:
-                prices[key] = round(lp_ratio * prices[base_symbol], 8)
-            else:
-                prices[key] = round(lp_ratio, 8)
+    for data in token_info:
+        if data["symbol"].lower() in token_name_list:
+            prices[data["symbol"].lower()] = round(float(data["volume"])/float(data["amount"]), 8)
     return prices
 
 def db_update_prices(db, index : int, input_prices : dict, input_prices_dict : dict, input_prices_candle_dict : dict):
@@ -176,11 +89,11 @@ def db_update_prices(db, index : int, input_prices : dict, input_prices_dict : d
         
     return input_prices_dict, input_prices_candle_dict
 
-async def main():
-    global json_dict
-    global lp_json_dict
-    global prices_dict
-    global prices_candle_dict
+def main():
+    global prices_dict_one
+    global prices_candle_dict_one
+    global prices_dict_five
+    global prices_candle_dict_five
     global prices_dict_fifteen
     global prices_candle_dict_fifteen
     global prices_dict_hour
@@ -191,7 +104,8 @@ async def main():
     global prices_candle_dict_day
     global price_db
 
-    index : int = 0
+    one_index : int = 0
+    five_index : int = 0
     fifteen_index : int = 0
     hour_index : int = 0
     four_hour_index : int = 0
@@ -210,9 +124,15 @@ async def main():
         print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\ndb 연결 실패! 오류 발생:")
 
     try:
-        db_index = price_db.coin.price.find({}).distinct('_id')
-        if len(db_index) != 0:
-            index = max(db_index) + 1
+        db_one_index = price_db.coin.price_one.find({}).distinct('_id')
+        if len(db_one_index) != 0:
+            index = max(db_one_index) + 1
+    except:
+        pass
+    try:
+        db_five_index = price_db.coin.price_five.find({}).distinct('_id')
+        if len(db_five_index) != 0:
+            index = max(db_five_index) + 1
     except:
         pass
     try:
@@ -240,130 +160,126 @@ async def main():
     except:
         pass
 
-
     while True:
         start = datetime.datetime.now()
         # try:
         if cnt == cal_loop:
-            prices_dict, prices_candle_dict = db_update_prices(price_db.coin.price, index, prices, prices_dict, prices_candle_dict)
+            prices_dict_one, prices_candle_dict_one = db_update_prices(price_db.coin.price_one, index, prices, prices_dict_one, prices_candle_dict_one)
+            one_index += 1
+            cnt = 0
 
-            index += 1
-            cnt =0
-            if index != 0 and index % 3 == 0:
-                prices_dict_fifteen, prices_candle_dict_fifteen = db_update_prices(price_db.coin.price_fifteen, fifteen_index, prices, prices_dict_fifteen, prices_candle_dict_fifteen)
-                
-                fifteen_index += 1
+            if one_index != 0 and one_index % 5 == 0:
+                prices_dict_five, prices_candle_dict_five = db_update_prices(price_db.coin.price_five, index, prices, prices_dict_five, prices_candle_dict_five)
+                five_index += 1
 
-                if fifteen_index != 0 and fifteen_index % 4 == 0:
-                    prices_dict_hour, prices_candle_dict_hour = db_update_prices(price_db.coin.price_hour, hour_index, prices, prices_dict_hour, prices_candle_dict_hour)
+                if five_index != 0 and five_index % 3 == 0:
+                    prices_dict_fifteen, prices_candle_dict_fifteen = db_update_prices(price_db.coin.price_fifteen, fifteen_index, prices, prices_dict_fifteen, prices_candle_dict_fifteen)
+                    fifteen_index += 1
 
-                    hour_index += 1
+                    if fifteen_index != 0 and fifteen_index % 4 == 0:
+                        prices_dict_hour, prices_candle_dict_hour = db_update_prices(price_db.coin.price_hour, hour_index, prices, prices_dict_hour, prices_candle_dict_hour)
+                        hour_index += 1
 
-                    if hour_index != 0 and hour_index % 4 == 0:
-                        prices_dict_four_hour, prices_candle_dict_four_hour = db_update_prices(price_db.coin.price_four_hour, four_hour_index, prices, prices_dict_four_hour, prices_candle_dict_four_hour)
+                        if hour_index != 0 and hour_index % 4 == 0:
+                            prices_dict_four_hour, prices_candle_dict_four_hour = db_update_prices(price_db.coin.price_four_hour, four_hour_index, prices, prices_dict_four_hour, prices_candle_dict_four_hour)
+                            four_hour_index += 1
 
-                        four_hour_index += 1
+                            if four_hour_index != 0 and four_hour_index % 6 == 0:
+                                prices_dict_day, prices_candle_dict_day = db_update_prices(price_db.coin.price_day, day_index, prices, prices_dict_day, prices_candle_dict_day)
+                                day_index += 1
 
-                        if four_hour_index != 0 and four_hour_index % 6 == 0:
-                            prices_dict_day, prices_candle_dict_day = db_update_prices(price_db.coin.price_day, day_index, prices, prices_dict_day, prices_candle_dict_day)
+        result, toten_data = get_json()
 
-                            day_index += 1
-
-        tasks = []
-        
-        for url in url_list:
-            task = asyncio.ensure_future(load_coin_json(url))
-            tasks.append(task)
-        
-        for url in lp_url_list:
-            task = asyncio.ensure_future(load_lp_json(url))
-            tasks.append(task)
-                
-        result = await asyncio.gather(*tasks)
-
-        if not all(result):
+        if not result:
             cnt += 1
 
-            json_dict = {}
-            lp_json_dict = {}
             loop_end = (datetime.datetime.now() - start).total_seconds()
 
             delay_time = loop_time - loop_end
             if delay_time < 0:
                 delay_time = 1
 
-            await asyncio.sleep(delay_time)
+            time.sleep(delay_time)
             continue
-
-        prices = save_prices_history(lp_json_dict, json_dict)
-        if prices == {}:
+        
+        try:
+            prices = save_prices_history(toten_data["tokenInfo"])
+        except:
             cnt += 1
 
-            json_dict = {}
-            lp_json_dict = {}
             loop_end = (datetime.datetime.now() - start).total_seconds()
 
             delay_time = loop_time - loop_end
             if delay_time < 0:
                 delay_time = 1
 
-            await asyncio.sleep(delay_time)
+            time.sleep(delay_time)
             continue
 
-        for k in prices_dict.keys():
-            prices_dict[k].append(prices[k])
+        for k in prices_dict_one.keys():
+            prices_dict_one[k].append(prices[k])
 
-        if not prices_candle_dict["Time"]:
-            prices_candle_dict["Time"] = prices["Time"]
+        if not prices_candle_dict_one["Time"]:
+            prices_candle_dict_one["Time"] = prices["Time"]
+            prices_candle_dict_five["Time"] = prices["Time"]
             prices_candle_dict_fifteen["Time"] = prices["Time"]
             prices_candle_dict_hour["Time"] = prices["Time"]
             prices_candle_dict_four_hour["Time"] = prices["Time"]
             prices_candle_dict_day["Time"] = prices["Time"]
 
-            for k, v in prices_dict.items():
-                prices_candle_dict[k].append([v[0], max(v), min(v), v[len(v)-1]])
-                prices_dict_fifteen[k] = prices_candle_dict[k][0]
-                prices_dict_hour[k] = prices_candle_dict[k][0]
-                prices_dict_four_hour[k] = prices_candle_dict[k][0]
-                prices_dict_day[k] = prices_candle_dict[k][0]
+            for k, v in prices_dict_one.items():
+                prices_candle_dict_one[k].append([v[0], max(v), min(v), v[len(v)-1]])
+                prices_dict_five[k] = prices_candle_dict_one[k][0]
+                prices_dict_fifteen[k] = prices_candle_dict_one[k][0]
+                prices_dict_hour[k] = prices_candle_dict_one[k][0]
+                prices_dict_four_hour[k] = prices_candle_dict_one[k][0]
+                prices_dict_day[k] = prices_candle_dict_one[k][0]
         else:
-            prices_candle_dict["Time"] = prices["Time"]
-            for k, v in prices_dict.items():
-                prices_candle_dict[k][len(prices_candle_dict[k])-1] = [v[0], max(v), min(v), v[len(v)-1]]
+            prices_candle_dict_one["Time"] = prices["Time"]
+            for k, v in prices_dict_one.items():
+                prices_candle_dict_one[k][len(prices_candle_dict_one[k])-1] = [v[0], max(v), min(v), v[len(v)-1]]
 
-        if not prices_dict_fifteen["klay"]:
+        if not prices_dict_five["klay"]:
+            prices_candle_dict_five["Time"] = prices["Time"]
             prices_candle_dict_fifteen["Time"] = prices["Time"]
             prices_candle_dict_hour["Time"] = prices["Time"]
             prices_candle_dict_four_hour["Time"] = prices["Time"]
             prices_candle_dict_day["Time"] = prices["Time"]
-            for k in prices_dict.keys():    
-                prices_dict_fifteen[k] = prices_candle_dict[k][0]
-                prices_dict_hour[k] = prices_candle_dict[k][0]
-                prices_dict_four_hour[k] = prices_candle_dict[k][0]
-                prices_dict_day[k] = prices_candle_dict[k][0]
+            for k in prices_dict_one.keys():    
+                prices_dict_five[k] = prices_candle_dict_one[k][0]
+                prices_dict_fifteen[k] = prices_candle_dict_one[k][0]
+                prices_dict_hour[k] = prices_candle_dict_one[k][0]
+                prices_dict_four_hour[k] = prices_candle_dict_one[k][0]
+                prices_dict_day[k] = prices_candle_dict_one[k][0]
 
-        for k in prices_dict.keys():
-            tmp_fifteen = prices_dict_fifteen[k] + prices_candle_dict[k][0]
+        for k in prices_dict_one.keys():
+            tmp_five = prices_dict_five[k] + prices_candle_dict_one[k][0]
+            result_five = [tmp_five[0], max(tmp_five), min(tmp_five), tmp_five[len(tmp_five)-1]]
+            prices_candle_dict_five[k] = [result_five]
+            prices_dict_five[k] = result_five
+
+            tmp_fifteen = prices_dict_fifteen[k] + prices_candle_dict_one[k][0]
             result_fifteen = [tmp_fifteen[0], max(tmp_fifteen), min(tmp_fifteen), tmp_fifteen[len(tmp_fifteen)-1]]
             prices_candle_dict_fifteen[k] = [result_fifteen]
             prices_dict_fifteen[k] = result_fifteen
 
-            tmp_hour = prices_dict_hour[k] + prices_candle_dict[k][0]
+            tmp_hour = prices_dict_hour[k] + prices_candle_dict_one[k][0]
             result_hour = [tmp_hour[0], max(tmp_hour), min(tmp_hour), tmp_hour[len(tmp_hour)-1]]
             prices_candle_dict_hour[k] = [result_hour]
             prices_dict_hour[k] = result_hour
 
-            tmp_four_hour = prices_dict_four_hour[k] + prices_candle_dict[k][0]
+            tmp_four_hour = prices_dict_four_hour[k] + prices_candle_dict_one[k][0]
             result_four_hour = [tmp_four_hour[0], max(tmp_four_hour), min(tmp_four_hour), tmp_four_hour[len(tmp_four_hour)-1]]
             prices_candle_dict_four_hour[k] = [result_four_hour]
             prices_dict_four_hour[k] = result_four_hour
 
-            tmp_day = prices_dict_day[k] + prices_candle_dict[k][0]
+            tmp_day = prices_dict_day[k] + prices_candle_dict_one[k][0]
             result_day = [tmp_day[0], max(tmp_day), min(tmp_day), tmp_day[len(tmp_day)-1]]
             prices_candle_dict_day[k] = [result_day]
             prices_dict_day[k] = result_day
 
-        price_db.coin.price.update_one({"_id":index}, {"$set" : prices_candle_dict}, upsert=True)
+        price_db.coin.price_one.update_one({"_id":one_index}, {"$set" : prices_candle_dict_one}, upsert=True)
+        price_db.coin.price_five.update_one({"_id":five_index}, {"$set" : prices_candle_dict_five}, upsert=True)
         price_db.coin.price_fifteen.update_one({"_id":fifteen_index}, {"$set" : prices_candle_dict_fifteen}, upsert=True)
         price_db.coin.price_hour.update_one({"_id":hour_index}, {"$set" : prices_candle_dict_hour}, upsert=True)
         price_db.coin.price_four_hour.update_one({"_id":four_hour_index}, {"$set" : prices_candle_dict_four_hour}, upsert=True)
@@ -371,22 +287,14 @@ async def main():
         
         cnt += 1
 
-        json_dict = {}
-        lp_json_dict = {}
-
         loop_end = (datetime.datetime.now() - start).total_seconds()
 
         delay_time = loop_time - loop_end
         if delay_time < 0:
             delay_time = 1
 
-        await asyncio.sleep(delay_time)
+        time.sleep(delay_time)
 
 if __name__ == "__main__":
-    py_ver = int(f"{sys.version_info.major}{sys.version_info.minor}")
-    if py_ver > 37 and sys.platform.startswith('win'):
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
-    loop.close()
+    main()
     #
