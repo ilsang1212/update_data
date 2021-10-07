@@ -126,13 +126,13 @@ def main():
     try:
         db_one_index = price_db.coin.price_one.find({}).distinct('_id')
         if len(db_one_index) != 0:
-            index = max(db_one_index) + 1
+            one_index = max(db_one_index) + 1
     except:
         pass
     try:
         db_five_index = price_db.coin.price_five.find({}).distinct('_id')
         if len(db_five_index) != 0:
-            index = max(db_five_index) + 1
+            five_index = max(db_five_index) + 1
     except:
         pass
     try:
