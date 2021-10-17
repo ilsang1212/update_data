@@ -9,17 +9,17 @@ import pymongo, ssl
 import requests
 import json
 
-# token_name_list : list = os.environ["TOKEN_NAME"].split(" ")
-# max_length : int = int(os.environ["MAX_LENGTH"])
-# loop_time : float = float(os.environ["LOOP_TIME"])
-# data_url : str = os.environ["DATA_URL"] 
-# cal_loop : int = int(60/loop_time)
+token_name_list : list = os.environ["TOKEN_NAME"].split(" ")
+max_length : int = int(os.environ["MAX_LENGTH"])
+loop_time : float = float(os.environ["LOOP_TIME"])
+data_url : str = os.environ["DATA_URL"] 
+cal_loop : int = int(60/loop_time)
 
-# mongoDB_connect_info : dict = {
-#     "host" : os.environ["mongoDB_HOST"],
-#     "username" : os.environ["USER_ID"],
-#     "password" : os.environ["USER_PASSWORD"]
-#     }
+mongoDB_connect_info : dict = {
+    "host" : os.environ["mongoDB_HOST"],
+    "username" : os.environ["USER_ID"],
+    "password" : os.environ["USER_PASSWORD"]
+    }
 
 prices : dict = {} 
 #1분
