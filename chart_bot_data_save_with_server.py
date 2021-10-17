@@ -21,20 +21,6 @@ import json
 #     "password" : os.environ["USER_PASSWORD"]
 #     }
 
-token = "1469351790:AAHnebkABXSiDMIHJEcrYemwQGreZOuHncw"
-a = "klay aklay ksp skai kfi house orca vkai kdai kai wood kscoinbase ksdunamu ksyanolja sbwpm wemix korc kbelt kseth kssol ksluna clam ksd kokoa jun juns mix"
-token_name_list : list = a.split(" ")
-max_length : int = 50
-loop_time : float = 6
-cal_loop : int = int(12/loop_time)
-data_url : str = "https://s.klayswap.com/stat/klayswapInfo.json"
-
-mongoDB_connect_info : dict = {
-    "host" : "cluster0-shard-00-00.27se1.mongodb.net:27017, cluster0-shard-00-01.27se1.mongodb.net:27017, cluster0-shard-00-02.27se1.mongodb.net:27017",
-    "username" : "ilsang",
-    "password" : "236541-ac"
-    }
-
 prices : dict = {} 
 #1분
 prices_dict_one : dict = {}
