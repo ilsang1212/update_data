@@ -72,7 +72,6 @@ def save_prices_history(token_info):
     result_prices['Time'] = (datetime.datetime.now() + datetime.timedelta(hours = int(9))).strftime('%m/%d %H:%M')
     for data in token_info:
         if data["symbol"].lower() in token_name_list:
-            print(data["symbol"].lower())
             try:
                 result_prices[data["symbol"].lower()] = round(float(data["volume"])/float(data["amount"]), 8)
             except ZeroDivisionError:
