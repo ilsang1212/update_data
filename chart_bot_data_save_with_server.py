@@ -9,18 +9,33 @@ import pymongo, ssl
 import requests
 import json
 
-token_name_list : list = os.environ["TOKEN_NAME"].split(" ")
-max_length : int = int(os.environ["MAX_LENGTH"])
-loop_time : float = float(os.environ["LOOP_TIME"])
-data_url : str = os.environ["DATA_URL"] 
-cal_loop : int = int(60/loop_time)
+# token_name_list : list = os.environ["TOKEN_NAME"].split(" ")
+# max_length : int = int(os.environ["MAX_LENGTH"])
+# loop_time : float = float(os.environ["LOOP_TIME"])
+# data_url : str = os.environ["DATA_URL"] 
+# cal_loop : int = int(60/loop_time)
+
+# mongoDB_connect_info : dict = {
+#     "host" : os.environ["mongoDB_HOST"],
+#     "username" : os.environ["USER_ID"],
+#     "password" : os.environ["USER_PASSWORD"]
+#     }
+
+token = "1469351790:AAHnebkABXSiDMIHJEcrYemwQGreZOuHncw"
+a = "klay aklay ksp skai kfi house orca vkai kdai kai wood kscoinbase ksdunamu ksyanolja sbwpm wemix korc kbelt kseth kssol ksluna clam ksd kokoa jun juns mix"
+token_name_list : list = a.split(" ")
+max_length : int = 50
+loop_time : float = 6
+cal_loop : int = int(12/loop_time)
+data_url : str = "https://s.klayswap.com/stat/klayswapInfo.json"
 
 mongoDB_connect_info : dict = {
-    "host" : os.environ["mongoDB_HOST"],
-    "username" : os.environ["USER_ID"],
-    "password" : os.environ["USER_PASSWORD"]
+    "host" : "cluster0-shard-00-00.27se1.mongodb.net:27017, cluster0-shard-00-01.27se1.mongodb.net:27017, cluster0-shard-00-02.27se1.mongodb.net:27017",
+    "username" : "ilsang",
+    "password" : "236541-ac"
     }
 
+prices : dict = {} 
 #1분
 prices_dict_one : dict = {}
 prices_candle_dict_one : dict = {"Time": ""}
@@ -67,12 +82,16 @@ def get_json():
         return False, "" 
 
 def save_prices_history(token_info):
-    prices = dict()
-    prices['Time'] = (datetime.datetime.now() + datetime.timedelta(hours = int(9))).strftime('%m/%d %H:%M')
+    result_prices : dict = {}
+    result_prices['Time'] = (datetime.datetime.now() + datetime.timedelta(hours = int(9))).strftime('%m/%d %H:%M')
     for data in token_info:
         if data["symbol"].lower() in token_name_list:
-            prices[data["symbol"].lower()] = round(float(data["volume"])/float(data["amount"]), 8)
-    return prices
+            print(data["symbol"].lower())
+            try:
+                result_prices[data["symbol"].lower()] = round(float(data["volume"])/float(data["amount"]), 8)
+            except ZeroDivisionError:
+                result_prices[data["symbol"].lower()] = 0.00000000
+    return result_prices
 
 def db_update_prices(db, index : int, input_prices : dict, input_prices_dict : dict, input_prices_candle_dict : dict):
     input_prices_candle_dict["Time"] = input_prices["Time"]
@@ -103,6 +122,7 @@ def main():
     global prices_dict_day
     global prices_candle_dict_day
     global price_db
+    global prices
 
     one_index : int = 0
     five_index : int = 0
