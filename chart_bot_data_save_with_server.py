@@ -74,7 +74,7 @@ def save_prices_history(token_info):
         if data["symbol"].lower() in token_name_list:
             try:
                 if data["symbol"].lower() == "bus":
-                    result_prices[data["symbol"].lower()] = round((float(data["volume"])/float(data["amount"]))*10**9, 8)
+                    result_prices[data["symbol"].lower()] = round((float(data["volume"])/float(data["amount"]))*10**8, 8)
                 else:
                     result_prices[data["symbol"].lower()] = round(float(data["volume"])/float(data["amount"]), 8)
             except ZeroDivisionError:
