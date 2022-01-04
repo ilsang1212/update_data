@@ -107,7 +107,7 @@ def save_prices_history(token_info):
             except ZeroDivisionError:
                 result_prices[data["symbol"].lower()] = 0.00000000
 
-    for key in except_token_data.key():
+    for key in except_token_data.keys():
         except_result, except_toten_data = get_except_json(key)
         if not except_result:
             result_prices[key.lower()] = 0.00000000
