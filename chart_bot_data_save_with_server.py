@@ -12,7 +12,10 @@ import json
 token_name_list : list = os.environ["TOKEN_NAME"].split(" ")
 max_length : int = int(os.environ["MAX_LENGTH"])
 loop_time : float = float(os.environ["LOOP_TIME"])
-data_url : str = os.environ["DATA_URL"] 
+data_url : str = os.environ["DATA_URL"]
+except_token_name : list = os.environ["EXCEPT_TOKEN_NAME"].split(" ")
+except_token_lp_contract : list = os.environ["EXCEPT_TOKEN_LP_CONTRACT"].split(" ")
+except_data_url : str = os.environ["EXCEPT_DATA_URL"]
 cal_loop : int = int(60/loop_time)
 
 mongoDB_connect_info : dict = {
@@ -44,6 +47,10 @@ prices_candle_dict_day : dict = {"Time": ""}
 price_db = None
 coin_json_data : dict = {}
 lp_json_data : dict = {}
+except_token_data : dict = {}
+
+for tmp_i, name in enumerate(except_token_name):
+    except_token_data[name] = except_token_lp_contract[tmp_i]
     
 for k in token_name_list:
     prices_dict_one[k] = []
@@ -67,7 +74,15 @@ def get_json():
         print(f"{datetime.datetime.now().strftime('%m/%d %H:%M')} : {e}")
         return False, "" 
 
-def save_prices_history(token_info):
+def get_except_json(symbol):
+    try:
+        except_token_info = requests.get(f"{except_data_url}{except_token_data[symbol]}/ftBalances").json()
+        return True, except_token_info
+    except Exception as e:
+        print(f"{datetime.datetime.now().strftime('%m/%d %H:%M')} : {e}")
+        return False, "" 
+
+def save_prices_history(token_info, except_token_info):
     result_prices : dict = {}
     result_prices['Time'] = (datetime.datetime.now() + datetime.timedelta(hours = int(9))).strftime('%m/%d %H:%M')
     for data in token_info:
@@ -79,6 +94,14 @@ def save_prices_history(token_info):
                     result_prices[data["symbol"].lower()] = round(float(data["volume"])/float(data["amount"]), 8)
             except ZeroDivisionError:
                 result_prices[data["symbol"].lower()] = 0.00000000
+
+    for key in except_token_data.key():
+        except_result, except_toten_data = get_except_json(key)
+        if not except_result:
+            result_prices[key.lower()] = 0.00000000
+            continue        
+        result_prices[key.lower()] = round(float(except_toten_data["result"][1]["amount"])/float(except_toten_data["result"][0]["amount"])*result_prices["klay"], 8)
+    
     return result_prices
 
 def db_update_prices(db, index : int, input_prices : dict, input_prices_dict : dict, input_prices_candle_dict : dict):
@@ -305,4 +328,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    #
