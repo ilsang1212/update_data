@@ -51,6 +51,18 @@ except_token_data : dict = {}
 
 for tmp_i, name in enumerate(except_token_name):
     except_token_data[name] = except_token_lp_contract[tmp_i]
+    prices_dict_one[name] = []
+    prices_candle_dict_one[name] = []
+    prices_dict_five[name] = []
+    prices_candle_dict_five[name] = []
+    prices_dict_fifteen[name] = []
+    prices_candle_dict_fifteen[name] = []
+    prices_dict_hour[name] = []
+    prices_candle_dict_hour[name] = []
+    prices_dict_four_hour[name] = []
+    prices_candle_dict_four_hour[name] = []
+    prices_dict_day[name] = []
+    prices_candle_dict_day[name] = []
     
 for k in token_name_list:
     prices_dict_one[k] = []
