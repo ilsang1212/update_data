@@ -94,7 +94,7 @@ def get_except_json(symbol):
         print(f"{datetime.datetime.now().strftime('%m/%d %H:%M')} : {e}")
         return False, "" 
 
-def save_prices_history(token_info, except_token_info):
+def save_prices_history(token_info):
     result_prices : dict = {}
     result_prices['Time'] = (datetime.datetime.now() + datetime.timedelta(hours = int(9))).strftime('%m/%d %H:%M')
     for data in token_info:
