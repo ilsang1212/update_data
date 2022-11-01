@@ -1,1 +1,1 @@
-worker: python chart_bot_data_save_with_server.py
+web: python chart_bot_data_save_with_server.py
