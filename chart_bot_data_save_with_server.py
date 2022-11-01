@@ -121,7 +121,7 @@ def main():
     cnt : int = 0
     
     try:
-        price_db = MongoClient(ssl=True, ssl_cert_reqs=ssl.CERT_NONE, **mongoDB_connect_info)
+        price_db = MongoClient(ssl=True, tlsAllowInvalidCertificates=True, **mongoDB_connect_info)
         price_db.admin.command("ismaster") # 연결 완료되었는지 체크
         print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\ndb 연결 완료. 아이디:{mongoDB_connect_info['username']}")
     except pymongo.errors.ServerSelectionTimeoutError:
