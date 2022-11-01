@@ -1,6 +1,14 @@
+python-telegram-bot
+matplotlib
+mplfinance
 pyssml
 oauth2client
 PyOpenSSL
 pymongo
 aiohttp
 requests
+feedparser
+ccxt
+cfscrape
+googletrans==4.0.0rc1
+pyupbit
