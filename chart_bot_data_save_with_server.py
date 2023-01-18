@@ -199,6 +199,8 @@ def main():
         result, toten_data = get_json()
 
         if not result:
+            print("if not result")
+            print(toten_data)
             cnt += 1
 
             loop_end = (datetime.datetime.now() - start).total_seconds()
