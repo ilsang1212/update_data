@@ -213,7 +213,9 @@ def main():
         try:
             prices = save_prices_history(toten_data[1][1:])
             print(prices)
-        except:
+        except Exception as e:
+            print(f"{datetime.datetime.now().strftime('%m/%d %H:%M')} : {e}")
+            
             cnt += 1
 
             loop_end = (datetime.datetime.now() - start).total_seconds()
