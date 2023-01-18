@@ -211,6 +211,7 @@ def main():
             continue
         
         try:
+            print(toten_data[1:])
             prices = save_prices_history(toten_data[1:])
             print(prices)
         except Exception as e:
