@@ -199,8 +199,6 @@ def main():
         result, toten_data = get_json()
 
         if not result:
-            print("if not result")
-            print(toten_data)
             cnt += 1
 
             loop_end = (datetime.datetime.now() - start).total_seconds()
@@ -214,6 +212,7 @@ def main():
         
         try:
             prices = save_prices_history(toten_data[1][1:])
+            print(prices)
         except:
             cnt += 1
 
