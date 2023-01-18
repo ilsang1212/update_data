@@ -211,8 +211,7 @@ def main():
             continue
         
         try:
-            print(toten_data)
-            prices = save_prices_history(toten_data[1][1:])
+            prices = save_prices_history(toten_data[1:])
             print(prices)
         except Exception as e:
             print(f"{datetime.datetime.now().strftime('%m/%d %H:%M')} : {e}")
