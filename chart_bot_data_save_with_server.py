@@ -71,7 +71,7 @@ def save_prices_history(token_info):
     result_prices : dict = {}
     result_prices['Time'] = (datetime.datetime.now() + datetime.timedelta(hours = int(9))).strftime('%m/%d %H:%M')
     for data in token_info:
-        if data["symbol"].lower() in token_name_list:
+        if data[2].lower() in token_name_list:
             try:
                 if data[2].lower() == "bus":
                     result_prices[data[2].lower()] = round(float(data[14])*10**8, 8)
@@ -211,9 +211,7 @@ def main():
             continue
         
         try:
-            print(toten_data[1:])
             prices = save_prices_history(toten_data[1:])
-            print(prices)
         except Exception as e:
             print(f"{datetime.datetime.now().strftime('%m/%d %H:%M')} : {e}")
             
