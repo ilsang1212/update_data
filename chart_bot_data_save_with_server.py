@@ -73,10 +73,11 @@ def save_prices_history(token_info):
     for data in token_info:
         if data[2].lower() in token_name_list:
             try:
-                if data[2].lower() == "bus" or data[1].lower() == "0x1f6b9ebefd37ad48a2c47596e799e02f404f34e7":
-                    result_prices[data[2].lower()] = round(float(data[14])*10**8, 8)
-                else:
-                    result_prices[data[2].lower()] = round(float(data[14]), 8)
+                if data[1].lower() != "0x1f6b9ebefd37ad48a2c47596e799e02f404f34e7" :
+                    if data[2].lower() == "bus" :
+                        result_prices[data[2].lower()] = round(float(data[14])*10**8, 8)
+                    else:
+                        result_prices[data[2].lower()] = round(float(data[14]), 8)
             except ZeroDivisionError:
                 result_prices[data["symbol"].lower()] = 0.00000000
     return result_prices
