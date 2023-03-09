@@ -65,7 +65,7 @@ def get_json():
         klayswap_info = requests.get(data_url).json()
         megaton_info = requests.get(megaton_data_url).json()
         for data in megaton_info:
-            tmp_list = data.values()
+            tmp_list = list(data.values())
             tmp_symbol = f"ton_{tmp_list[2]}"
             tmp_list[2] = tmp_symbol
             klayswap_info.append(tmp_list)
