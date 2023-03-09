@@ -13,6 +13,7 @@ token_name_list : list = os.environ["TOKEN_NAME"].split(" ")
 max_length : int = int(os.environ["MAX_LENGTH"])
 loop_time : float = float(os.environ["LOOP_TIME"])
 data_url : str = os.environ["DATA_URL"] 
+megaton_data_url : str = os.environ["MEGATON_DATA_URL"] 
 cal_loop : int = int(60/loop_time)
 
 mongoDB_connect_info : dict = {
@@ -62,6 +63,12 @@ for k in token_name_list:
 def get_json():
     try:
         klayswap_info = requests.get(data_url).json()
+        megaton_info = requests.get(megaton_data_url).json()
+        for data in megaton_info:
+            tmp_list = data.values()
+            tmp_symbol = f"ton_{tmp_list[2]}"
+            tmp_list[2] = tmp_symbol
+            klayswap_info.append(tmp_list)
         return True, klayswap_info
     except Exception as e:
         print(f"{datetime.datetime.now().strftime('%m/%d %H:%M')} : {e}")
@@ -308,4 +315,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    #
